@@ -1,186 +1,50 @@
-# 品构 pg-skills — 品质，长在结构里
+# pg-skills 简介
 
-> 一个让 AI 写代码真正"可托付"的框架
+> 本页是项目简介。可复制的安装与操作步骤以[文档中心](README.md)为准。
 
----
+pg-skills 是一套项目级 AI 开发工作流。它把需求定界、方案设计、任务执行、测试、审查、真实环境验证和归档组织在同一个 change 中，并通过适配器接入 OpenCode 和 Mobile Coder。
 
-## 一句话说清楚
+**SEA（Spec、Environment、Acceptance）是 pg-skills 的方法论：** Spec 由 `proposal.md`、`design.md` 和 `tasks.md` 描述方案；Environment 由 `describe_env` 只读探测并生成 `env-description.yaml`；Acceptance 通过 `scenario-*.yaml` 定义可执行验收条件。
 
-**"SDD 还没学明白，SEA 又来了。"** —— 品构 pg-skills 就是那个"又来了"的新概念。
+## 标准工作流
 
-别急着划走。SDD（Specification-Driven Development，"先写方案再写代码"）方向是对的，但你会发现它有个共同尴尬：**方案写完了，代码写完了，还是没人敢合。** 因为 SDD 只解决了一半：
-
-- **不关心真实环境长什么样** —— 方案写的是"假设中的环境"
-- **说不清"验证通过"是在哪跑的** —— 你分不清是真环境还是 mock
-
-所以品构不只是又套了一层新名字，而是把 SDD 缺的这两块补上，凑成完整的 **SEA**（Spec 方案 · Environment 环境 · Acceptance 验收）三根支柱，缺一不可。方案之外的每一行代码，都是在真实环境里验证通过、用 Gherkin 场景做过端到端验收的——**不是 mock 里跑一跑就交差。**
-
----
-
-## 痛点：AI 写代码，谁来兜底？
-
-```
-┌───────────────┐     ┌───────────────┐
-│   盲猜模式    │     │   品构模式     │
-│               │     │               │
-│ AI 读到代码   │     │ 先出图纸      │
-│ 猜构建命令    │     │ 按图施工      │
-│ 猜环境地址    │     │ 真实环境验证  │
-│ 猜验收标准    │     │ 门控打分      │
-│               │     │               │
-│ 猜对了是运气  │     │ 系统比人      │
-│ 猜错了不敢合  │     │ 先看见问题    │
-└───────────────┘     └───────────────┘
+```text
+/1-pg-define
+      ↓
+/2-pg-propose <change-id>
+      ↓
+人工审查 proposal、design、tasks 和 execution-manifest
+      ↓
+/3-pg-build <change-id>
+      ↓
+archive → verify-and-merge
 ```
 
-**你每天的日常：** 跟 AI 聊需求 → AI 改代码 → 你不敢合 → 自己改一遍 → 改完忘了测 → 上线出 bug。
+- `define` 调查代码、澄清需求并确定边界。
+- `propose` 生成方案、设计、任务和执行清单。
+- `build` 依据项目配置派送 Test、Dev、Review、Verify 和 Gate 等角色。
+- `verify-and-merge` 可能自动执行 Git 提交、rebase、push、合并和默认分支推送。
+- `archive` 保存完成或放弃的变更记录。
 
-**品构之后的日常：** 说需求 → 点头确认图纸 → 去做别的事 → 回来验收合入。中间 1-8 小时完全无人值守。
+运行时间和人工介入次数取决于变更规模、模型、项目测试、环境稳定性和失败情况。pg-skills 不承诺固定耗时、固定通过率或完全无人值守。
 
----
+## 项目级接入
 
-## 核心方法论：SEA-Driven Development
+pg-skills 源码位于业务项目的 `.pg/skills/`，一般通过 Git subtree 引入。`pg init --tool <tool>` 创建公共项目骨架并生成目标工具的 Commands、Skills、Agents 或桥接配置，但不会下载 pg-skills，也不会替用户配置模型和 API 密钥。
 
-品构的哲学是 **"品质，长在结构里"**。那"结构"具体指什么？三根支柱：
+首次初始化的正确顺序是：
 
-| 支柱 | 是什么 | 解决什么问题 |
-|------|--------|-------------|
-| **方案 (Spec)** | proposal / design / tasks | 做什么、怎么做、怎么验证 |
-| **环境 (Environment)** | 真实环境探测快照 | 不再猜环境里有什么 |
-| **验收 (Acceptance)** | 端到端 Gherkin 场景 | 不在 mock 里跑，在真实服务上验证 |
+1. 把 pg-skills 放入 `.pg/skills/`。
+2. 运行 `pg init --tool <tool>`。
+3. 在 AI 开发工具中加载 `pg-init-project`，生成真实 `.pg/project.yaml`。
+4. 在终端运行 `pg doctor`。
+5. 从一个边界清楚的小变更开始。
 
-缺了环境，方案写的是"假设中的环境"；缺了真实验收，验证跑的是"理想中的验证"。三者合一，系统才能完整描述"项目长什么样 → 在哪验证 → 怎么算真通过"。
+## 继续阅读
 
----
-
-## 一次变更的全过程
-
-### 步骤 1：定界（`/1-pg-define`）— 约 20 分钟
-
-跟 AI 聊清楚：这次改什么、不改什么、边界在哪。AI 是思考伙伴，陪你把三件事聊明白：
-
-- 需求 vs 现实代码：不空谈，把想法落到代码库里
-- 方案与边界：做什么 / 不做什么、影响范围多大
-- 真实环境验收：将来在真实环境里怎么验收
-
-**红线：只讨论，不写代码。**
-
-### 步骤 2：提案（`/2-pg-propose`）— 自动
-
-AI 把定界结论整理成一套"施工图纸"：
-
-| 文件 | 一句话解释 |
-|------|-----------|
-| `proposal.md` | 做什么、为什么做 |
-| `design.md` | 怎么做、怎么验证 |
-| `tasks.md` | 分步施工单，支持断点续做 |
-| `execution-manifest.yaml` | pipeline 的"总指挥" |
-| `scenario-*.yaml` | 端到端验收脚本（按需） |
-
-图纸齐了，AI 才能开工。
-
-### 步骤 3：构建（`/3-pg-build`）— 1-8 小时，无人工干预
-
-Pipeline 引擎自动跑完：
-
-```
-写测试 → 写实现 → 代码审查 → 真实环境验证 → 门控打分(≥80分) → 合并
-```
-
-每一步都是不可变事件，随时可以回放复盘。跑挂了能从断点恢复，不从头再来。
-
-### 步骤 4：你验收 — 几分钟
-
-大多数情况下（约 80%）一次就达到预期，直接合并。剩余约 20% 的情况，用 vibecoding 微调即可。
-
----
-
-## 三种工作流，适配不同场景
-
-```
-标准流：  定界 → 提案 → 构建 → 合并  （正经功能开发）
-快捷流：  定界 → 直接改                （小改动，≤8 tasks）
-修复流：  诊断 → 展示方案 → 修复 → 验证（Bug 修复）
-回归流：  跑测试 → 分类失败 → 自动修复  （回归测试）
-```
-
----
-
-## 为什么敢合？
-
-**1. 每步留痕可回放** — 每个操作都是不可变事件，随时复盘
-
-**2. 验证在真实环境** — 启动真实服务、跑真实 API、查真实日志，不在 mock 里跑
-
-**3. 门控打分 ≥80 才放行** — 5 维加权评分，没评审不合入，没验证不交付
-
-**4. 回归自动闭环** — 回归发现问题 → 自动修复 → 提交 PR，不用你操心
-
----
-
-## 接入一个新项目有多简单？
-
-```bash
-# 1. 拉入 pg-skills
-git remote add pg-skills git@github.com:pin-gou/pg-skills.git
-git subtree add --prefix=.pg/skills pg-skills v0.9.1 --squash
-
-# 2. 初始化骨架
-python3 .pg/skills/src/runtime/bin/pg init
-
-# 3. 重启 opencode，触发 pg-init-project 自动扫描仓库
-# 4. 验证
-python3 .pg/skills/src/runtime/bin/pg doctor
-```
-
-接入后，AI 自动扫描仓库，生成 `project.yaml`（你的项目"户口本"）+ hooks（环境生命周期脚本）+ code review 配置。你只需要核对一遍 AI 生成的产物是否正确。
-
----
-
-## 企业级特性一览
-
-| 特性 | 说明 |
-|------|------|
-| **事件溯源引擎** | 每一步不可变，跑挂了从断点恢复 |
-| **TDRVG 五阶段** | 测试 → 开发 → 审查 → 验证 → 门控，逐层把关 |
-| **5 维门控评分** | 正确性(35%) + 安全(25%) + 可维护(15%) + 性能(15%) + 规格覆盖(10%) |
-| **真实环境验证** | 启动真实服务，跑 Gherkin Given/When/Then |
-| **自动回归** | 测试失败自动分类修复，A/B 类自动修，C 类提单 |
-| **无人值守** | 1-8 小时 pipeline 自动跑完，人不参与 |
-| **SSOT 设计** | 单一可信源，`project.yaml` 是唯一配置来源 |
-| **Hook 协议** | 标准化环境生命周期，注入 PG_* 环境变量，统一审计日志 |
-
----
-
-## 适合谁用？
-
-- **技术负责人** — 想引入 AI 辅助开发，但担心代码质量失控
-- **全栈/独立开发者** — 一个人干所有活，需要 AI 帮你分担实现和验证
-- **技术团队** — 多个开发者 + AI 协作，需要统一流程和规范
-- **开源项目维护者** — 用 AI 自动处理 issue 和 PR，保持项目质量
-
----
-
-## 现在开始
-
-```bash
-# 查看项目是否适合
-git clone git@github.com:pin-gou/pg-skills.git
-cd pg-skills
-python3 src/runtime/bin/pg doctor
-
-# 或者直接在你的项目里接入
-# 详见 https://github.com/pin-gou/pg-skills
-```
-
----
-
-> **品构 pg-skills** — 「品质，长在结构里」
->
-> 让 AI 写代码不再是"开盲盒"，而是"出图纸 → 施工 → 验收 → 合入"的工程闭环。
->
-> 你只做两件事：说清需求，在关键节点点头。
-> 中间那 1-8 小时，AI 替你扛。
->
-> 首页：[https://pin-gou.github.io/pg-skills](https://pin-gou.github.io/pg-skills)
-> 仓库：[https://github.com/pin-gou/pg-skills](https://github.com/pin-gou/pg-skills)
+- [安装指南](installation.md)
+- [入门指南](getting-started.md)
+- [核心概念概览](overview.md)
+- [工作流指南](workflows.md)
+- [支持的开发工具](supported-tools.md)
+- [celer-route 实战教程](tutorials/celer-route.md)
