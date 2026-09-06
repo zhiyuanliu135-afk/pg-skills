@@ -38,13 +38,14 @@ pg-skills 是一套面向 AI 编程的开发工作流。它把需求定界、方
 
 标准流程会在功能分支上执行 build；build 完成后，只有在用户明确要求“verify 并合并”时，`pg-verify-and-merge` 才会验证、合并并推送到配置的默认分支。因此，开始前先在 GitHub 上 Fork `pin-gou/celer-route`。本教程仍从官方仓库克隆指定的教学分支，再把自己的 Fork 配置为可写的 `origin`，这样既能确保起点一致，也能完成后续推送。
 
-在 PowerShell 中执行，其中 `<你的账号>` 替换为自己的 GitHub 用户名：
+在 PowerShell 中执行，先把第一行引号中的内容替换为自己的 GitHub 用户名：
 
 ```powershell
+$GitHubUser = '替换为你的 GitHub 用户名'
 git clone --branch pg-skills-starting-point --single-branch https://github.com/pin-gou/celer-route.git
 cd celer-route
 git remote rename origin upstream
-git remote add origin https://github.com/<你的账号>/celer-route.git
+git remote add origin "https://github.com/$GitHubUser/celer-route.git"
 git push -u origin pg-skills-starting-point
 git branch --show-current
 python --version
@@ -53,7 +54,7 @@ node --version
 opencode --version
 ```
 
-当前分支应显示 `pg-skills-starting-point`，`origin` 指向自己的 Fork，`upstream` 指向官方仓库。仓库 `.nvmrc` 声明 Node.js `22.12.0`，Go 版本建议与项目 `go.mod` 一致。OpenCode 还应提前配置好可用的模型 Provider。
+当前分支应显示 `pg-skills-starting-point`，`origin` 指向自己的 Fork，`upstream` 指向官方仓库。仓库 `.nvmrc` 声明 Node.js `22.12.0`；celer-route 是多 Go module 项目，Go 版本应满足各模块 `go.mod` 的声明。OpenCode 还应提前配置好可用的模型 Provider。
 
 ### 安装并加载 pg-skills
 
@@ -86,7 +87,7 @@ opencode
 请加载 pg-init-project skill，扫描当前 celer-route 仓库并初始化 pg-skills 项目配置。
 
 要求：
-1. 从真实目录、go.mod、package.json、Makefile 和现有测试中识别模块及构建命令。
+1. 从真实目录、各模块 go.mod、package.json、Makefile 和现有测试中识别模块及构建命令。
 2. 按照项目实际启动方式配置 local 环境：API 使用 9080 端口，UI 使用 3008 端口，并生成环境准备、清理、服务启停和健康检查脚本。
 3. 在 local 环境中显式配置 describe_env，脚本路径使用 .pg/hooks/local/describe_env.sh，保证 define 和 propose 可以生成 env-description.yaml。
 4. 为 transports 和 ui 的端到端验收配置 id 为 scr、type 为 scenario 的场景路线，使 propose 可以生成 scenario-scr.yaml。
@@ -99,7 +100,17 @@ opencode
 
 ![在 OpenCode 中输入项目初始化任务的后半部分](../images/tutorials/celer-route/opencode-init-input-2.png)
 
-初始化主要生成两类配置：`.pg/project.yaml` 记录模块、环境、工作路线和构建命令；`.pg/hooks/` 保存环境准备、清理、服务启停、健康检查和 `describe_env` 只读探测脚本。`.opencode/` 中的命令入口用于在 OpenCode 中加载对应工作流。
+`pg-init-project` 完成后，重点检查以下产物：
+
+| 产物 | 作用 |
+| --- | --- |
+| `.pg/context/repo-scan.md` | 记录从真实仓库识别出的技术栈、模块和构建测试入口 |
+| `.pg/project.yaml` | 定义 modules、environments、tracks、stages 和 Git 默认分支 |
+| `.pg/code-review/` | 保存 build 的 review 阶段使用的默认、Go 和 TypeScript 检查规则 |
+| `.pg/hooks/` | 保存环境准备、清理、服务启停、健康检查和 `describe_env` 只读探测脚本 |
+| `.pg/context/agent-protocol.md` | 告诉后续 agent 应从哪里读取项目命令、环境动作和日志路径 |
+
+如果仓库中的 `AGENTS.md` 与新配置可能发生偏移，还会生成 `.pg/context/agents-md-patches.md` 供人工检查，但不会直接修改 `AGENTS.md`。`.opencode/` 则由前一步 `pg init --tool opencode` 创建，保存 OpenCode 加载命令、Skill 和 Agent 所需的工具适配入口。
 
 `pg-init-project` 完成后，项目已经可以进入 define 阶段。下面的检查不是工作流的必经步骤；本教程为了确认刚生成的配置符合后续场景验收要求，才进行一次额外核对。
 
@@ -268,7 +279,7 @@ git commit -m "docs: record log stats report plan"
 
 ## 第四步：执行 build
 
-### 运行完整工作流
+### 运行 build 流水线
 
 在 OpenCode 中输入：
 
@@ -286,7 +297,7 @@ build 完成后可以查看：
 | --- | --- |
 | 业务代码 | 实现 CSV 报表接口、前端下载请求和“导出报表”按钮 |
 | 测试 | 验证统计复用、CSV 内容、空结果和筛选参数传递 |
-| `2-build/` | 保存各阶段的执行记录、测试报告、场景结果和验证证据 |
+| `2-build/` | 保存各阶段的执行记录、测试报告、场景结果和验证证据；成功后随 change 移入归档目录 |
 
 ### 明确触发验证合并
 
@@ -338,10 +349,11 @@ Get-ChildItem .pg\changes -Recurse -Filter '*-evidence.json' -File |
 
 ## 后续学习
 
-本教程已经完成 define、propose 和 build 标准流程。接下来可以尝试其他工作流：
+本教程已经完成 define、propose、build，以及由用户明确触发的 verify 和 merge 标准流程。接下来可以尝试其他工作流：
 
 | 工作流 | OpenCode 命令 | 适用场景 |
 | --- | --- | --- |
+| 自动驾驶 | `/0-pg-auto-pilot` | 用户明确授权后，让 AI 自主规划和实施，并在选定的真实环境中验证结果 |
 | 需求压力测试 | `/1-pg-grill` | 检查需求或方案中的遗漏和矛盾 |
 | 快速构建 | `/2b-pg-quick-build` | 小范围、边界明确的修改 |
 | 回归测试 | `/4-pg-regression` | 执行项目已有的回归测试套件 |

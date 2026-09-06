@@ -189,11 +189,12 @@
 <h2 id="第一步-准备项目">第一步：准备项目</h2>
 <h3 id="fork-仓库并获取代码">Fork 仓库并获取代码</h3>
 <p>标准流程会在功能分支上执行 build；build 完成后，只有在用户明确要求“verify 并合并”时，<code>pg-verify-and-merge</code> 才会验证、合并并推送到配置的默认分支。因此，开始前先在 GitHub 上 Fork <code>pin-gou/celer-route</code>。本教程仍从官方仓库克隆指定的教学分支，再把自己的 Fork 配置为可写的 <code>origin</code>，这样既能确保起点一致，也能完成后续推送。</p>
-<p>在 PowerShell 中执行，其中 <code>&lt;你的账号&gt;</code> 替换为自己的 GitHub 用户名：</p>
-<pre><code class="language-powershell">git clone --branch pg-skills-starting-point --single-branch https://github.com/pin-gou/celer-route.git
+<p>在 PowerShell 中执行，先把第一行引号中的内容替换为自己的 GitHub 用户名：</p>
+<pre><code class="language-powershell">$GitHubUser = '替换为你的 GitHub 用户名'
+git clone --branch pg-skills-starting-point --single-branch https://github.com/pin-gou/celer-route.git
 cd celer-route
 git remote rename origin upstream
-git remote add origin https://github.com/&lt;你的账号&gt;/celer-route.git
+git remote add origin &quot;https://github.com/$GitHubUser/celer-route.git&quot;
 git push -u origin pg-skills-starting-point
 git branch --show-current
 python --version
@@ -201,7 +202,7 @@ go version
 node --version
 opencode --version
 </code></pre>
-<p>当前分支应显示 <code>pg-skills-starting-point</code>，<code>origin</code> 指向自己的 Fork，<code>upstream</code> 指向官方仓库。仓库 <code>.nvmrc</code> 声明 Node.js <code>22.12.0</code>，Go 版本建议与项目 <code>go.mod</code> 一致。OpenCode 还应提前配置好可用的模型 Provider。</p>
+<p>当前分支应显示 <code>pg-skills-starting-point</code>，<code>origin</code> 指向自己的 Fork，<code>upstream</code> 指向官方仓库。仓库 <code>.nvmrc</code> 声明 Node.js <code>22.12.0</code>；celer-route 是多 Go module 项目，Go 版本应满足各模块 <code>go.mod</code> 的声明。OpenCode 还应提前配置好可用的模型 Provider。</p>
 <h3 id="安装并加载-pg-skills">安装并加载 pg-skills</h3>
 <p>将 pg-skills 安装到项目，并生成 OpenCode 能够识别的命令和 Agent：</p>
 <pre><code class="language-powershell">git remote add pg-skills https://github.com/pin-gou/pg-skills.git
@@ -223,7 +224,7 @@ python .pg\skills\src\runtime\bin\pg init --tool opencode
 <pre><code class="language-text">请加载 pg-init-project skill，扫描当前 celer-route 仓库并初始化 pg-skills 项目配置。
 
 要求：
-1. 从真实目录、go.mod、package.json、Makefile 和现有测试中识别模块及构建命令。
+1. 从真实目录、各模块 go.mod、package.json、Makefile 和现有测试中识别模块及构建命令。
 2. 按照项目实际启动方式配置 local 环境：API 使用 9080 端口，UI 使用 3008 端口，并生成环境准备、清理、服务启停和健康检查脚本。
 3. 在 local 环境中显式配置 describe_env，脚本路径使用 .pg/hooks/local/describe_env.sh，保证 define 和 propose 可以生成 env-description.yaml。
 4. 为 transports 和 ui 的端到端验收配置 id 为 scr、type 为 scenario 的场景路线，使 propose 可以生成 scenario-scr.yaml。
@@ -233,7 +234,38 @@ python .pg\skills\src\runtime\bin\pg init --tool opencode
 </code></pre>
 <p><img src="../../images/tutorials/celer-route/opencode-init-input-1.png" alt="在 OpenCode 中输入项目初始化任务的前半部分" /></p>
 <p><img src="../../images/tutorials/celer-route/opencode-init-input-2.png" alt="在 OpenCode 中输入项目初始化任务的后半部分" /></p>
-<p>初始化主要生成两类配置：<code>.pg/project.yaml</code> 记录模块、环境、工作路线和构建命令；<code>.pg/hooks/</code> 保存环境准备、清理、服务启停、健康检查和 <code>describe_env</code> 只读探测脚本。<code>.opencode/</code> 中的命令入口用于在 OpenCode 中加载对应工作流。</p>
+<p><code>pg-init-project</code> 完成后，重点检查以下产物：</p>
+<table>
+<thead>
+<tr>
+<th>产物</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.pg/context/repo-scan.md</code></td>
+<td>记录从真实仓库识别出的技术栈、模块和构建测试入口</td>
+</tr>
+<tr>
+<td><code>.pg/project.yaml</code></td>
+<td>定义 modules、environments、tracks、stages 和 Git 默认分支</td>
+</tr>
+<tr>
+<td><code>.pg/code-review/</code></td>
+<td>保存 build 的 review 阶段使用的默认、Go 和 TypeScript 检查规则</td>
+</tr>
+<tr>
+<td><code>.pg/hooks/</code></td>
+<td>保存环境准备、清理、服务启停、健康检查和 <code>describe_env</code> 只读探测脚本</td>
+</tr>
+<tr>
+<td><code>.pg/context/agent-protocol.md</code></td>
+<td>告诉后续 agent 应从哪里读取项目命令、环境动作和日志路径</td>
+</tr>
+</tbody>
+</table>
+<p>如果仓库中的 <code>AGENTS.md</code> 与新配置可能发生偏移，还会生成 <code>.pg/context/agents-md-patches.md</code> 供人工检查，但不会直接修改 <code>AGENTS.md</code>。<code>.opencode/</code> 则由前一步 <code>pg init --tool opencode</code> 创建，保存 OpenCode 加载命令、Skill 和 Agent 所需的工具适配入口。</p>
 <p><code>pg-init-project</code> 完成后，项目已经可以进入 define 阶段。下面的检查不是工作流的必经步骤；本教程为了确认刚生成的配置符合后续场景验收要求，才进行一次额外核对。</p>
 <h3 id="可选-检查初始化结果">可选：检查初始化结果</h3>
 <p>需要排查配置问题或核对本教程的关键配置时，在 PowerShell 中运行：</p>
@@ -407,7 +439,7 @@ change-id 使用 export-log-stats-report。
 git commit -m &quot;docs: record log stats report plan&quot;
 </code></pre>
 <h2 id="第四步-执行-build">第四步：执行 build</h2>
-<h3 id="运行完整工作流">运行完整工作流</h3>
+<h3 id="运行-build-流水线">运行 build 流水线</h3>
 <p>在 OpenCode 中输入：</p>
 <pre><code class="language-text">/3-pg-build export-log-stats-report
 </code></pre>
@@ -432,7 +464,7 @@ git commit -m &quot;docs: record log stats report plan&quot;
 </tr>
 <tr>
 <td><code>2-build/</code></td>
-<td>保存各阶段的执行记录、测试报告、场景结果和验证证据</td>
+<td>保存各阶段的执行记录、测试报告、场景结果和验证证据；成功后随 change 移入归档目录</td>
 </tr>
 </tbody>
 </table>
@@ -470,7 +502,7 @@ Get-ChildItem .pg\changes -Recurse -Filter '*-evidence.json' -File |
 <p>完成后，日志页面会显示“导出报表”按钮。点击该按钮即可按当前筛选条件下载日志统计 CSV。</p>
 <p><img src="../../images/tutorials/celer-route/export-log-stats-report-page.png" alt="完成导出日志统计报表功能后的日志页面" /></p>
 <h2 id="后续学习">后续学习</h2>
-<p>本教程已经完成 define、propose 和 build 标准流程。接下来可以尝试其他工作流：</p>
+<p>本教程已经完成 define、propose、build，以及由用户明确触发的 verify 和 merge 标准流程。接下来可以尝试其他工作流：</p>
 <table>
 <thead>
 <tr>
@@ -480,6 +512,11 @@ Get-ChildItem .pg\changes -Recurse -Filter '*-evidence.json' -File |
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>自动驾驶</td>
+<td><code>/0-pg-auto-pilot</code></td>
+<td>用户明确授权后，让 AI 自主规划和实施，并在选定的真实环境中验证结果</td>
+</tr>
 <tr>
 <td>需求压力测试</td>
 <td><code>/1-pg-grill</code></td>
@@ -533,7 +570,7 @@ Get-ChildItem .pg\changes -Recurse -Filter '*-evidence.json' -File |
 <a class="toc-link level-3" href="#sea-与本次变更">SEA 与本次变更</a>
 <a class="toc-link level-3" href="#核对提案产物">核对提案产物</a>
 <a class="toc-link level-2" href="#第四步-执行-build">第四步：执行 build</a>
-<a class="toc-link level-3" href="#运行完整工作流">运行完整工作流</a>
+<a class="toc-link level-3" href="#运行-build-流水线">运行 build 流水线</a>
 <a class="toc-link level-3" href="#明确触发验证合并">明确触发验证合并</a>
 <a class="toc-link level-2" href="#第五步-查看最终结果">第五步：查看最终结果</a>
 <a class="toc-link level-3" href="#检查报表功能">检查报表功能</a>
