@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="在 celer-route 真实项目中完整体验 pg-skills 的 define、propose、build 和验证流程">
+  <title>在 celer-route 项目中体验 pg-skills</title>
+  <style>
+    :root {
+      --header-h: 60px; --sidebar-w: 276px; --toc-w: 250px;
+      --bg: #fff; --nav-bg: #f6f7fb; --surface: #f8f9fc; --text: #16181d;
+      --muted: #616977; --line: #e1e4eb; --primary: #4f5df7;
+      --accent: #ff9d00; --code-bg: #f3f5f8; --shadow: 0 12px 32px rgba(24, 33, 64, .08);
+    }
+    [data-theme="dark"] {
+      --bg: #111318; --nav-bg: #171a21; --surface: #1b1f28; --text: #edf0f7;
+      --muted: #aab1bf; --line: #2d3340; --primary: #8a94ff;
+      --accent: #ffc04d; --code-bg: #202530; --shadow: none;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 22px); }
+    body { margin: 0; color: var(--text); background: var(--bg); font-family: "Segoe UI", "Microsoft YaHei", sans-serif; line-height: 1.75; }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .progress { position: fixed; inset: 0 auto auto 0; height: 3px; width: 0; background: linear-gradient(90deg, var(--primary), var(--accent)); z-index: 60; }
+    .header { position: sticky; top: 0; z-index: 50; height: var(--header-h); display: flex; align-items: center; gap: 24px; padding: 0 22px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(14px); }
+    .brand { color: var(--text); font-weight: 760; font-size: 18px; white-space: nowrap; }
+    .brand strong { color: var(--primary); }
+    .slogan { color: var(--muted); font-size: 14px; }
+    .slogan b { color: var(--accent); margin-left: 18px; }
+    .header-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .github-link, .theme-button, .menu-button { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); padding: 7px 11px; font: inherit; cursor: pointer; }
+    .menu-button { display: none; }
+    .layout { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 900px) var(--toc-w); justify-content: center; min-height: calc(100vh - var(--header-h)); }
+    .sidebar, .toc { position: sticky; top: var(--header-h); align-self: start; height: calc(100vh - var(--header-h)); overflow-y: auto; }
+    .sidebar { padding: 24px 12px 40px; background: var(--nav-bg); border-right: 1px solid var(--line); }
+    .sidebar-title { padding: 0 12px 12px; font-weight: 760; }
+    .group-label { display: block; padding: 18px 12px 6px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+    .nav-link { display: block; margin: 2px 0; padding: 7px 12px; border-left: 2px solid transparent; border-radius: 0 8px 8px 0; color: var(--muted); font-size: 14px; }
+    .nav-link:hover { color: var(--text); background: var(--surface); text-decoration: none; }
+    .nav-link.active { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); border-left-color: var(--primary); font-weight: 650; }
+    .article { min-width: 0; padding: 42px 48px 90px; }
+    .article h1 { margin: 0 0 20px; font-size: clamp(32px, 4vw, 48px); line-height: 1.2; letter-spacing: -.03em; }
+    .article h2 { margin: 52px 0 16px; padding-top: 4px; border-bottom: 1px solid var(--line); font-size: 28px; line-height: 1.35; }
+    .article h3 { margin: 34px 0 12px; font-size: 21px; line-height: 1.4; }
+    .article p { margin: 14px 0; }
+    .article ul, .article ol { padding-left: 26px; }
+    .article li { margin: 5px 0; }
+    .article blockquote { margin: 20px 0; padding: 12px 18px; border-left: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); color: var(--muted); }
+    .article table { width: 100%; border-collapse: collapse; margin: 20px 0 26px; display: block; overflow-x: auto; }
+    .article th, .article td { min-width: 130px; padding: 11px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .article th { background: var(--surface); font-weight: 700; }
+    code { padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--code-bg); font-family: Consolas, "Cascadia Code", monospace; font-size: .88em; }
+    pre { overflow-x: auto; margin: 18px 0 26px; padding: 18px 20px; border-radius: 12px; background: #171b24; color: #e9edf6; box-shadow: var(--shadow); line-height: 1.55; }
+    pre code { padding: 0; border: 0; background: transparent; color: inherit; }
+    .article img { display: block; max-width: 100%; height: auto; margin: 20px auto 30px; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+    .toc { padding: 32px 20px 40px; border-left: 1px solid var(--line); }
+    .toc-title { margin-bottom: 10px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .toc-link { display: block; padding: 5px 0 5px 12px; border-left: 2px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .toc-link.level-3 { padding-left: 24px; font-size: 12px; }
+    .toc-link.active { color: var(--primary); border-left-color: var(--primary); font-weight: 650; }
+    .toc-link:hover { color: var(--text); text-decoration: none; }
+    .backdrop { display: none; }
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: var(--sidebar-w) minmax(0, 900px); }
+      .toc { display: none; }
+    }
+    @media (max-width: 780px) {
+      .slogan, .github-link { display: none; }
+      .menu-button { display: inline-flex; }
+      .layout { display: block; }
+      .sidebar { position: fixed; z-index: 45; top: var(--header-h); left: 0; width: min(84vw, 310px); transform: translateX(-105%); transition: transform .2s ease; box-shadow: var(--shadow); }
+      body.menu-open .sidebar { transform: translateX(0); }
+      body.menu-open .backdrop { display: block; position: fixed; z-index: 40; inset: var(--header-h) 0 0; background: rgba(8, 11, 18, .45); }
+      .article { padding: 30px 20px 70px; }
+      .article h1 { font-size: 34px; }
+      .article h2 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <header class="header">
+    <button class="menu-button" id="menu" type="button" aria-label="打开导航">目录</button>
+    <a class="brand" href="../../"><strong>品构</strong> pg-skills</a>
+    <span class="slogan">品质，长在结构里 <b>SEA 驱动的 AI Coding</b></span>
+    <div class="header-actions">
+      <a class="github-link" href="https://github.com/pin-gou/pg-skills">GitHub</a>
+      <button class="theme-button" id="theme" type="button" aria-label="切换明暗主题">明暗</button>
+    </div>
+  </header>
+  <div class="backdrop" id="backdrop"></div>
+  <div class="layout">
+    <nav class="sidebar" aria-label="全站导航">
+      <div class="sidebar-title"><a class="brand" href="../../"><strong>品构</strong> pg-skills</a></div>
+      <span class="group-label">基础概念</span>
+      <a class="nav-link" href="../../#sec1">1. 为什么需要</a>
+      <a class="nav-link" href="../../#sec2">2. 架构全景</a>
+      <span class="group-label">新项目接入</span>
+      <a class="nav-link" href="../../#sec3-onboard">3.1 五步接入</a>
+      <a class="nav-link" href="../../#sec3-yaml">3.2 project.yaml</a>
+      <a class="nav-link" href="../../#sec3-hook">3.3 Hook 协议</a>
+      <a class="nav-link" href="../../#sec3-demo">3.4 执行演示</a>
+      <a class="nav-link" href="../../#sec3-checklist">3.5 Checklist</a>
+      <span class="group-label">日常使用</span>
+      <a class="nav-link" href="../../#sec4-overview">4.1 概述</a>
+      <a class="nav-link" href="../../#sec4-define">4.2 定界</a>
+      <a class="nav-link" href="../../#sec4-propose">4.3 提案</a>
+      <a class="nav-link" href="../../#sec4-build">4.4 构建</a>
+      <a class="nav-link" href="../../#sec5">5. Bug 修复</a>
+      <a class="nav-link" href="../../#sec6">6. 回归测试</a>
+      <a class="nav-link" href="../../#sec7">7. 动手实操</a>
+      <a class="nav-link" href="../../#sec8">8. 常见问题</a>
+      <span class="group-label">真实项目实战</span>
+      <a class="nav-link active" href="./">celer-route 项目实战教程</a>
+      <span class="group-label">附录</span>
+      <a class="nav-link" href="../../#sec-appendix">参考速查卡</a>
+    </nav>
+    <main class="article" id="article"><h1 id="在-celer-route-项目中体验-pg-skills">在 celer-route 项目中体验 pg-skills</h1>
+<p>celer-route 是一个统一管理和路由大模型请求的开源服务，提供多 Provider 接入、请求路由、日志查询、统计分析和可视化管理页面。本教程以该项目为真实代码库，通过增加“导出日志统计报表”功能，完整演示如何使用 pg-skills 完成需求定界、方案生成、代码实现和验证合并。</p>
+<p>pg-skills 是一套面向 AI 编程的开发工作流。它把需求定界、方案生成、代码实现和验证合并拆成可检查的步骤，并把关键产物保存在项目中。</p>
+<p><strong>标准流：define → propose → build → verify → merge</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>OpenCode 命令或 Skill</th>
+<th>主要产物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>定界需求</td>
+<td><code>/1-pg-define</code>、<code>pg-define</code></td>
+<td><code>define-summary.yaml</code>、<code>env-description.yaml</code></td>
+</tr>
+<tr>
+<td>生成提案</td>
+<td><code>/2-pg-propose &lt;change-id&gt;</code>、<code>pg-propose</code></td>
+<td><code>proposal.md</code>、<code>design.md</code>、<code>tasks.md</code>、<code>execution-manifest.yaml</code> 和验收场景</td>
+</tr>
+<tr>
+<td>构建实现</td>
+<td><code>/3-pg-build &lt;change-id&gt;</code>、<code>pg-build</code></td>
+<td>业务代码、测试和 <code>2-build/</code> 运行记录</td>
+</tr>
+<tr>
+<td>验证合并</td>
+<td>build 完成后明确要求“verify 并合并”，加载 <code>pg-verify-and-merge</code></td>
+<td>验证已归档的变更，并把功能分支合并到默认分支</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SEA（Spec、Environment、Acceptance）是 pg-skills 的方法论。</strong> 它要求方案、真实环境和验收条件相互对应：</p>
+<table>
+<thead>
+<tr>
+<th>支柱</th>
+<th>对应产物</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>方案 Spec</strong></td>
+<td><code>proposal.md</code>、<code>design.md</code>、<code>tasks.md</code></td>
+<td>说明为什么做、怎样实现以及分成哪些任务</td>
+</tr>
+<tr>
+<td><strong>环境 Environment</strong></td>
+<td><code>env-description.yaml</code></td>
+<td>由 <code>describe_env</code> 只读探测生成，记录本次变更使用的真实环境</td>
+</tr>
+<tr>
+<td><strong>验收 Acceptance</strong></td>
+<td><code>scenario-*.yaml</code>（Gherkin 场景）</td>
+<td>定义可执行的验收条件，并通过实际运行结果证明功能符合方案</td>
+</tr>
+</tbody>
+</table>
+<p>本教程会从一个尚未接入 pg-skills 的 celer-route 分支开始，完成“导出日志统计报表”功能。完成后，日志页面可以根据当前筛选条件下载 CSV 统计摘要。</p>
+<h2 id="阅读说明">阅读说明</h2>
+<p>本文有两种输入：</p>
+<ul>
+<li>标注为 PowerShell 的命令在项目根目录的终端中执行；</li>
+<li><code>/*-pg-*</code> 命令和任务描述发送到 OpenCode 对话框。</li>
+</ul>
+<p>斜杠命令不是终端命令。</p>
+<h2 id="第一步-准备项目">第一步：准备项目</h2>
+<h3 id="fork-仓库并获取代码">Fork 仓库并获取代码</h3>
+<p>标准流程会在功能分支上执行 build；build 完成后，只有在用户明确要求“verify 并合并”时，<code>pg-verify-and-merge</code> 才会验证、合并并推送到配置的默认分支。因此，开始前先在 GitHub 上 Fork <code>pin-gou/celer-route</code>。本教程仍从官方仓库克隆指定的教学分支，再把自己的 Fork 配置为可写的 <code>origin</code>，这样既能确保起点一致，也能完成后续推送。</p>
+<p>在 PowerShell 中执行，其中 <code>&lt;你的账号&gt;</code> 替换为自己的 GitHub 用户名：</p>
+<pre><code class="language-powershell">git clone --branch pg-skills-starting-point --single-branch https://github.com/pin-gou/celer-route.git
+cd celer-route
+git remote rename origin upstream
+git remote add origin https://github.com/&lt;你的账号&gt;/celer-route.git
+git push -u origin pg-skills-starting-point
+git branch --show-current
+python --version
+go version
+node --version
+opencode --version
+</code></pre>
+<p>当前分支应显示 <code>pg-skills-starting-point</code>，<code>origin</code> 指向自己的 Fork，<code>upstream</code> 指向官方仓库。仓库 <code>.nvmrc</code> 声明 Node.js <code>22.12.0</code>，Go 版本建议与项目 <code>go.mod</code> 一致。OpenCode 还应提前配置好可用的模型 Provider。</p>
+<h3 id="安装并加载-pg-skills">安装并加载 pg-skills</h3>
+<p>将 pg-skills 安装到项目，并生成 OpenCode 能够识别的命令和 Agent：</p>
+<pre><code class="language-powershell">git remote add pg-skills https://github.com/pin-gou/pg-skills.git
+git fetch pg-skills --tags
+git subtree add --prefix=.pg/skills pg-skills v0.9.3 --squash
+python .pg\skills\src\runtime\bin\pg init --tool opencode
+</code></pre>
+<p>安装完成后：</p>
+<ul>
+<li><code>.pg/skills/</code> 保存 pg-skills 的公共工作流；</li>
+<li><code>.opencode/</code> 保存 OpenCode 使用的命令和 Agent；</li>
+<li><code>.pg/tool-integration.json</code> 记录当前使用的开发工具。</li>
+</ul>
+<h3 id="生成项目配置">生成项目配置</h3>
+<p>在项目根目录启动 OpenCode：</p>
+<pre><code class="language-powershell">opencode
+</code></pre>
+<p>在 OpenCode 中发送：</p>
+<pre><code class="language-text">请加载 pg-init-project skill，扫描当前 celer-route 仓库并初始化 pg-skills 项目配置。
+
+要求：
+1. 从真实目录、go.mod、package.json、Makefile 和现有测试中识别模块及构建命令。
+2. 按照项目实际启动方式配置 local 环境：API 使用 9080 端口，UI 使用 3008 端口，并生成环境准备、清理、服务启停和健康检查脚本。
+3. 在 local 环境中显式配置 describe_env，脚本路径使用 .pg/hooks/local/describe_env.sh，保证 define 和 propose 可以生成 env-description.yaml。
+4. 为 transports 和 ui 的端到端验收配置 id 为 scr、type 为 scenario 的场景路线，使 propose 可以生成 scenario-scr.yaml。
+5. 将 git.default_branch 设置为 pg-skills-starting-point，并保留仓库原有的 .opencode/scripts 文件。
+
+完成后说明生成了哪些文件，以及哪些配置需要我确认。
+</code></pre>
+<p><img src="../../images/tutorials/celer-route/opencode-init-input-1.png" alt="在 OpenCode 中输入项目初始化任务的前半部分" /></p>
+<p><img src="../../images/tutorials/celer-route/opencode-init-input-2.png" alt="在 OpenCode 中输入项目初始化任务的后半部分" /></p>
+<p>初始化主要生成两类配置：<code>.pg/project.yaml</code> 记录模块、环境、工作路线和构建命令；<code>.pg/hooks/</code> 保存环境准备、清理、服务启停、健康检查和 <code>describe_env</code> 只读探测脚本。<code>.opencode/</code> 中的命令入口用于在 OpenCode 中加载对应工作流。</p>
+<p><code>pg-init-project</code> 完成后，项目已经可以进入 define 阶段。下面的检查不是工作流的必经步骤；本教程为了确认刚生成的配置符合后续场景验收要求，才进行一次额外核对。</p>
+<h3 id="可选-检查初始化结果">可选：检查初始化结果</h3>
+<p>需要排查配置问题或核对本教程的关键配置时，在 PowerShell 中运行：</p>
+<pre><code class="language-powershell">python .pg\skills\src\runtime\bin\pg doctor
+Test-Path .pg\hooks\local\describe_env.sh
+Select-String -Path .pg\project.yaml -Pattern 'describe_env|scr:|type: scenario|default_branch'
+</code></pre>
+<p><code>pg doctor</code> 检查项目配置是否符合 Schema，并提示未完成的占位配置；<code>Test-Path</code> 确认本教程需要的 <code>describe_env</code> 脚本已经生成；<code>Select-String</code> 只用于显示需要人工核对的配置行。检查结果中，<code>pg doctor</code> 应没有 <code>error</code> 或 <code>placeholder</code>，<code>Test-Path</code> 应返回 <code>True</code>，配置查询结果应包含 <code>describe_env</code>、<code>scr</code>、<code>type: scenario</code> 和 <code>default_branch</code>。</p>
+<p><code>describe_env</code> 只读取服务地址、可用能力和数据状态，不启动服务或修改数据。define 和 propose 会使用它生成的 <code>env-description.yaml</code> 判断验收条件能否在 local 环境中执行。</p>
+<h3 id="首次接入时保存配置">首次接入时保存配置</h3>
+<p>这也不是 define 的前置步骤。如果 pg-skills 配置已经提交到仓库，可以直接跳过。本教程刚刚在教学分支上完成首次接入，因此先提交生成的配置，避免后续 build 因工作区存在未提交内容而中断：</p>
+<pre><code class="language-powershell">git add .pg .opencode
+if (Test-Path pg-run) { git add pg-run }
+if (Test-Path pg-run.cmd) { git add pg-run.cmd }
+git commit -m &quot;chore: integrate pg-skills for OpenCode&quot;
+</code></pre>
+<p>以上检查和提交都不构成新的 pg-skills 阶段。准备完成后，重新启动 OpenCode，输入 <code>/</code> 应能看到 <code>1-pg-define</code>、<code>2-pg-propose</code> 和 <code>3-pg-build</code>，随后即可进入 define。</p>
+<h2 id="第二步-明确报表需求">第二步：明确报表需求</h2>
+<h3 id="功能目标">功能目标</h3>
+<p>celer-route 已经提供日志查询和统计接口。本次练习在现有能力上增加一份 CSV 格式的统计摘要：</p>
+<ol>
+<li>后端新增 <code>GET /api/logs/stats/report.csv</code>；</li>
+<li>报表复用现有日志筛选和统计逻辑；</li>
+<li>CSV 包含请求数、成功率、平均延迟、Token 数和总费用；</li>
+<li>日志页面增加“导出报表”按钮，并携带页面当前的筛选条件；</li>
+<li>报表不包含提示词、请求正文、响应正文或 API Key；</li>
+<li>后端测试、前端检查和端到端场景均通过。</li>
+</ol>
+<p>pg-skills 使用 change-id 组织一次变更的提案产物、代码和运行记录。本次使用：</p>
+<pre><code class="language-text">export-log-stats-report
+</code></pre>
+<h3 id="使用-define-完成定界">使用 define 完成定界</h3>
+<p>在 OpenCode 中一次发送以下完整内容。<code>/1-pg-define</code> 后面的正文就是本次定界任务，不要拆成两次发送：</p>
+<pre><code class="language-text">/1-pg-define
+
+change-id 使用 export-log-stats-report。
+
+请为 celer-route 增加“导出日志统计摘要”功能。先查看现有 GET /api/logs/stats 的实现、筛选参数、日志页面、前端 API 封装、下载工具和相关测试，再确定修改范围。
+
+要求：
+1. 新增 GET /api/logs/stats/report.csv，复用现有筛选和统计逻辑。
+2. CSV 固定包含 total_requests、success_rate、average_latency_ms、prompt_tokens、completion_tokens、total_tokens、total_cost。
+3. 返回正确的 CSV Content-Type 和下载文件名。
+4. 日志页面增加“导出报表”按钮，下载请求携带当前筛选条件。
+5. 没有匹配日志时仍返回表头和零值统计行。
+6. 不导出提示词、请求正文、响应正文或 API Key。
+7. 使用后端测试、前端检查和端到端场景验证。
+
+请列出目标文件、非目标、主要风险和验证方式，不要直接修改代码。
+</code></pre>
+<p><img src="../../images/tutorials/celer-route/opencode-define-input-1.png" alt="在 OpenCode 中输入 define 命令和任务的第一部分" /></p>
+<p><img src="../../images/tutorials/celer-route/opencode-define-input-2.png" alt="在 OpenCode 中输入 define 命令和任务的第二部分" /></p>
+<p><img src="../../images/tutorials/celer-route/opencode-define-input-3.png" alt="在 OpenCode 中输入 define 命令和任务的第三部分" /></p>
+<p>define 给出定界总结后，选择 <code>local</code> 环境并确认执行定界后的环境验证。该环节会调用只读的 <code>describe_env</code> 脚本，生成环境描述和定界结果。</p>
+<h3 id="定界后的选择">定界后的选择</h3>
+<p>环境验证通过后，OpenCode 会依次询问：</p>
+<ol>
+<li>是否继续细化真实环境的验证方法；</li>
+<li>下一步进入 propose、quick-build，还是直接实施。</li>
+</ol>
+<p>本次功能涉及后端接口、前端页面和场景验收，应选择 <strong>“加载 pg-propose skill 生成产物（推荐）”</strong>。选择后，OpenCode 会在当前对话中直接进入 propose，不需要再次输入命令。如果希望手动进入该阶段，也可以输入 <code>/2-pg-propose export-log-stats-report</code>。</p>
+<p>define 完成后会生成：</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0-define/define-summary.yaml</code></td>
+<td>保存本次需求的目标、范围、非目标、风险和验证方式</td>
+</tr>
+<tr>
+<td><code>env-description.yaml</code></td>
+<td>保存 <code>describe_env</code> 对当前项目环境的只读探测结果，供 propose 和 build 使用</td>
+</tr>
+</tbody>
+</table>
+<p><code>define-summary.yaml</code> 应说明：后端修改位于日志处理器，前端修改位于日志页面和 API 封装，现有统计逻辑会被复用，原始日志内容不属于导出范围。</p>
+<h2 id="第三步-生成变更提案">第三步：生成变更提案</h2>
+<h3 id="使用-propose">使用 propose</h3>
+<p>如果 define 结束时已经选择推荐的 propose 路径，可以直接等待提案生成。否则在 OpenCode 中输入：</p>
+<pre><code class="language-text">/2-pg-propose export-log-stats-report
+</code></pre>
+<p><img src="../../images/tutorials/celer-route/opencode-propose-input.png" alt="在 OpenCode 中输入 propose 命令" /></p>
+<p>propose 会根据 define 的定界结果生成变更提案。完成后，变更目录中会包含：</p>
+<pre><code class="language-text">.pg/changes/export-log-stats-report/
+├── 0-define/
+│   └── define-summary.yaml
+├── env-description.yaml
+├── proposal.md
+├── design.md
+├── tasks.md
+├── execution-manifest.yaml
+├── scenario-scr.yaml
+└── 1-propose-review/
+    └── on-conditions-eval.md
+</code></pre>
+<h3 id="提案产物">提案产物</h3>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>proposal.md</code></td>
+<td>说明为什么做、要达到什么结果</td>
+</tr>
+<tr>
+<td><code>design.md</code></td>
+<td>说明后端接口和前端按钮怎样实现</td>
+</tr>
+<tr>
+<td><code>tasks.md</code></td>
+<td>把实现过程拆成可以执行的步骤</td>
+</tr>
+<tr>
+<td><code>execution-manifest.yaml</code></td>
+<td>把任务整理成 build 实际执行的工作清单</td>
+</tr>
+<tr>
+<td><code>env-description.yaml</code></td>
+<td>记录本次任务使用的真实项目环境</td>
+</tr>
+<tr>
+<td><code>scenario-scr.yaml</code></td>
+<td>从日志页面点击下载开始，验收完整功能</td>
+</tr>
+</tbody>
+</table>
+<p>场景验收路线统一命名为 <code>scr</code>。由于本次变更同时涉及后端接口和前端页面，propose 会生成 <code>scenario-scr.yaml</code>，并在 <code>on-conditions-eval.md</code> 中记录启用原因。</p>
+<h3 id="sea-与本次变更">SEA 与本次变更</h3>
+<p>pg-skills 使用 <strong>SEA</strong> 让提案、环境和验收相互对应：</p>
+<table>
+<thead>
+<tr>
+<th>SEA</th>
+<th>本次练习中的内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Spec</td>
+<td><code>proposal.md</code>、<code>design.md</code>、<code>tasks.md</code> 说明要做什么、怎样实现</td>
+</tr>
+<tr>
+<td>Environment</td>
+<td><code>env-description.yaml</code> 说明在哪个真实环境中执行</td>
+</tr>
+<tr>
+<td>Acceptance</td>
+<td><code>scenario-scr.yaml</code> 和测试结果说明功能是否真正完成</td>
+</tr>
+</tbody>
+</table>
+<p>SEA 要求提案产物能够在当前项目环境中执行，并通过测试或场景结果证明功能可用。</p>
+<h3 id="核对提案产物">核对提案产物</h3>
+<p>进入 build 前，重点确认：</p>
+<ol>
+<li><code>design.md</code> 复用了现有日志筛选和统计能力；</li>
+<li>任务同时包含后端接口、前端按钮和必要测试；</li>
+<li>场景会验证筛选参数、下载响应头和 CSV 内容。</li>
+</ol>
+<p>确认提案产物正确后，在 PowerShell 中保存这些文件：</p>
+<pre><code class="language-powershell">git add .pg\changes\export-log-stats-report
+git commit -m &quot;docs: record log stats report plan&quot;
+</code></pre>
+<h2 id="第四步-执行-build">第四步：执行 build</h2>
+<h3 id="运行完整工作流">运行完整工作流</h3>
+<p>在 OpenCode 中输入：</p>
+<pre><code class="language-text">/3-pg-build export-log-stats-report
+</code></pre>
+<p><img src="../../images/tutorials/celer-route/opencode-build-input.png" alt="在 OpenCode 中输入 build 命令" /></p>
+<p>build 会直接读取已经生成的提案产物和任务，不需要再次发送需求。它会依次完成代码修改、测试、代码审查和场景验证，并把过程记录在本次 change 中。流水线成功后，build 会把 change 自动归档到 <code>.pg/changes/archive/</code>，输出完成报告并停止。pg-skills 0.9.3 不允许 agent 自动触发 <code>pg-verify-and-merge</code>，必须等待用户明确指示。</p>
+<p>build 完成后可以查看：</p>
+<table>
+<thead>
+<tr>
+<th>产物</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>业务代码</td>
+<td>实现 CSV 报表接口、前端下载请求和“导出报表”按钮</td>
+</tr>
+<tr>
+<td>测试</td>
+<td>验证统计复用、CSV 内容、空结果和筛选参数传递</td>
+</tr>
+<tr>
+<td><code>2-build/</code></td>
+<td>保存各阶段的执行记录、测试报告、场景结果和验证证据</td>
+</tr>
+</tbody>
+</table>
+<h3 id="明确触发验证合并">明确触发验证合并</h3>
+<p>确认 build 的完成报告后，在 OpenCode 中发送：</p>
+<pre><code class="language-text">请验证并合并 export-log-stats-report。
+</code></pre>
+<p>这条明确指示会加载 <code>pg-verify-and-merge</code>。验证通过后，它会把功能分支合并并推送到配置的默认分支；change 已由 build 提前归档。<code>pg-verify-and-merge</code> 不是需要手动输入的 Slash Command，也不能由 build 自动启动。</p>
+<h2 id="第五步-查看最终结果">第五步：查看最终结果</h2>
+<h3 id="检查报表功能">检查报表功能</h3>
+<p>完成后，日志页面应出现“导出报表”按钮。点击后下载的 CSV 应满足：</p>
+<ul>
+<li>使用页面当前的筛选条件；</li>
+<li>包含约定的七个统计字段；</li>
+<li>没有数据时仍有表头和零值统计行；</li>
+<li>不包含日志正文和密钥。</li>
+</ul>
+<h3 id="验证代码与场景结果">验证代码与场景结果</h3>
+<p>在 PowerShell 中执行：</p>
+<pre><code class="language-powershell">go -C transports/celer-route-http test ./handlers -run 'Test(FormatLogStatsCSV|GetLogsStatsReportCSV|ParseLogStatsFiltersMatchesGetLogsStats)' -count=1
+
+Push-Location ui
+npx vitest run app/workspace/logs/views/exportLogStatsReportButton.test.tsx
+Pop-Location
+
+npm --prefix ui run typecheck
+npm --prefix ui run lint
+git show --stat --oneline HEAD
+Get-ChildItem .pg\changes -Recurse -Filter '*-evidence.json' -File |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1 -ExpandProperty FullName
+</code></pre>
+<p>后端命令只运行本次报表功能对应的测试，Vitest 命令验证“导出报表”按钮，随后执行前端类型检查和 lint。当前仓库的 lint 可能显示既有 warning；退出码为 0 且结果为 <code>0 errors</code> 即表示 lint 通过。<code>git show</code> 显示本次提交的修改范围。最后一组命令输出最新场景证据文件的完整路径；打开该 JSON 文件，确认页面操作、下载请求和 CSV 断言均已通过。该文件是 SEA 中 Acceptance 的实际验收证据。代码、测试和场景结果一致时，本次练习就完成了。</p>
+<h2 id="完成后的页面">完成后的页面</h2>
+<p>完成后，日志页面会显示“导出报表”按钮。点击该按钮即可按当前筛选条件下载日志统计 CSV。</p>
+<p><img src="../../images/tutorials/celer-route/export-log-stats-report-page.png" alt="完成导出日志统计报表功能后的日志页面" /></p>
+<h2 id="后续学习">后续学习</h2>
+<p>本教程已经完成 define、propose 和 build 标准流程。接下来可以尝试其他工作流：</p>
+<table>
+<thead>
+<tr>
+<th>工作流</th>
+<th>OpenCode 命令</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>需求压力测试</td>
+<td><code>/1-pg-grill</code></td>
+<td>检查需求或方案中的遗漏和矛盾</td>
+</tr>
+<tr>
+<td>快速构建</td>
+<td><code>/2b-pg-quick-build</code></td>
+<td>小范围、边界明确的修改</td>
+</tr>
+<tr>
+<td>回归测试</td>
+<td><code>/4-pg-regression</code></td>
+<td>执行项目已有的回归测试套件</td>
+</tr>
+<tr>
+<td>问题修复</td>
+<td><code>/5-pg-fix-issue</code></td>
+<td>修复已经确认且可以复现的问题</td>
+</tr>
+<tr>
+<td>手动归档</td>
+<td><code>/6-pg-archive &lt;change-id&gt;</code></td>
+<td>归档失败、取消或不再继续的变更</td>
+</tr>
+</tbody>
+</table>
+<p>进一步阅读：</p>
+<ul>
+<li><a href="https://github.com/pin-gou/pg-skills/blob/main/docs/pg-skills.md">pg-skills 完整介绍</a>：了解 SEA 方法论、标准流程、快捷流和新项目接入方式。</li>
+<li><a href="https://github.com/pin-gou/pg-skills/blob/main/docs/tool-integrations.md">开发工具适配器说明</a>：了解 pg-skills 如何接入 OpenCode 等开发工具。</li>
+</ul>
+<p>遇到初始化、命令加载或工作流中断时，可以先返回 <a href="https://pin-gou.github.io/pg-skills/">pg-skills 首页</a> 查阅常见问题与速查卡。</p>
+</main>
+    <aside class="toc" aria-label="本页目录">
+      <div class="toc-title">本页目录</div>
+      <a class="toc-link level-2" href="#阅读说明">阅读说明</a>
+<a class="toc-link level-2" href="#第一步-准备项目">第一步：准备项目</a>
+<a class="toc-link level-3" href="#fork-仓库并获取代码">Fork 仓库并获取代码</a>
+<a class="toc-link level-3" href="#安装并加载-pg-skills">安装并加载 pg-skills</a>
+<a class="toc-link level-3" href="#生成项目配置">生成项目配置</a>
+<a class="toc-link level-3" href="#可选-检查初始化结果">可选：检查初始化结果</a>
+<a class="toc-link level-3" href="#首次接入时保存配置">首次接入时保存配置</a>
+<a class="toc-link level-2" href="#第二步-明确报表需求">第二步：明确报表需求</a>
+<a class="toc-link level-3" href="#功能目标">功能目标</a>
+<a class="toc-link level-3" href="#使用-define-完成定界">使用 define 完成定界</a>
+<a class="toc-link level-3" href="#定界后的选择">定界后的选择</a>
+<a class="toc-link level-2" href="#第三步-生成变更提案">第三步：生成变更提案</a>
+<a class="toc-link level-3" href="#使用-propose">使用 propose</a>
+<a class="toc-link level-3" href="#提案产物">提案产物</a>
+<a class="toc-link level-3" href="#sea-与本次变更">SEA 与本次变更</a>
+<a class="toc-link level-3" href="#核对提案产物">核对提案产物</a>
+<a class="toc-link level-2" href="#第四步-执行-build">第四步：执行 build</a>
+<a class="toc-link level-3" href="#运行完整工作流">运行完整工作流</a>
+<a class="toc-link level-3" href="#明确触发验证合并">明确触发验证合并</a>
+<a class="toc-link level-2" href="#第五步-查看最终结果">第五步：查看最终结果</a>
+<a class="toc-link level-3" href="#检查报表功能">检查报表功能</a>
+<a class="toc-link level-3" href="#验证代码与场景结果">验证代码与场景结果</a>
+<a class="toc-link level-2" href="#完成后的页面">完成后的页面</a>
+<a class="toc-link level-2" href="#后续学习">后续学习</a>
+    </aside>
+  </div>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const saved = localStorage.getItem('pg-theme');
+      const preferred = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.dataset.theme = saved || preferred;
+      document.getElementById('theme').addEventListener('click', () => {
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('pg-theme', root.dataset.theme);
+      });
+      const closeMenu = () => document.body.classList.remove('menu-open');
+      document.getElementById('menu').addEventListener('click', () => document.body.classList.toggle('menu-open'));
+      document.getElementById('backdrop').addEventListener('click', closeMenu);
+      document.querySelectorAll('.sidebar a').forEach(link => link.addEventListener('click', closeMenu));
+      addEventListener('scroll', () => {
+        const height = document.documentElement.scrollHeight - innerHeight;
+        document.getElementById('progress').style.width = (height > 0 ? scrollY / height * 100 : 0) + '%';
+      }, { passive: true });
+      const tocLinks = [...document.querySelectorAll('.toc-link')];
+      const byId = new Map(tocLinks.map(link => [decodeURIComponent(link.hash.slice(1)), link]));
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          tocLinks.forEach(link => link.classList.remove('active'));
+          const active = byId.get(entry.target.id);
+          if (active) active.classList.add('active');
+        });
+      }, { rootMargin: '-80px 0px -72% 0px' });
+      document.querySelectorAll('#article h2, #article h3').forEach(heading => observer.observe(heading));
+    })();
+  </script>
+</body>
+</html>
