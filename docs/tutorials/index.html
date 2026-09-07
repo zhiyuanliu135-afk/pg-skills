@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="在真实开源项目中学习 pg-skills 的完整开发工作流。">
+  <title>真实项目实战 · 品构 pg-skills</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --panel: #f7f8fb;
+      --panel-strong: #eef1f6;
+      --text: #171b26;
+      --muted: #5f6878;
+      --line: #dfe3eb;
+      --brand: #3157e2;
+      --accent: #f59e0b;
+      --accent-soft: #fff6df;
+      --header-h: 58px;
+      --sidebar-w: 260px;
+      --aside-w: 230px;
+    }
+    [data-theme="dark"] {
+      --bg: #11141b;
+      --panel: #171c26;
+      --panel-strong: #202735;
+      --text: #f0f3f8;
+      --muted: #a9b1bf;
+      --line: #303847;
+      --brand: #7892ff;
+      --accent: #fbbf24;
+      --accent-soft: #332711;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.65;
+    }
+    a { color: inherit; text-decoration: none; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 94%, transparent);
+      backdrop-filter: blur(12px);
+    }
+    .brand { font-weight: 900; letter-spacing: -.02em; }
+    .brand span { color: var(--brand); }
+    .tagline { color: var(--muted); font-size: 13px; }
+    .sea { color: var(--accent); font-weight: 800; font-size: 13px; }
+    .top-actions { margin-left: auto; display: flex; gap: 8px; }
+    .top-action {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 11px;
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--aside-w);
+      min-height: calc(100vh - var(--header-h));
+    }
+    .sidebar {
+      position: sticky;
+      top: var(--header-h);
+      height: calc(100vh - var(--header-h));
+      overflow: auto;
+      padding: 24px 18px 40px;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .sidebar-title { margin: 0 8px 24px; font-weight: 900; }
+    .sidebar-title span { color: var(--brand); }
+    .group-label {
+      display: block;
+      margin: 22px 8px 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .nav-link { display: block; padding: 8px 10px; border-radius: 6px; color: var(--muted); font-size: 14px; }
+    .nav-link:hover { color: var(--text); background: var(--panel-strong); }
+    .nav-link.active { color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, var(--panel)); font-weight: 800; }
+    main { min-width: 0; padding: 54px clamp(30px, 5vw, 76px) 80px; }
+    .eyebrow { color: var(--accent); font-size: 13px; font-weight: 900; letter-spacing: .12em; }
+    h1 { max-width: 760px; margin: 10px 0 18px; font-size: clamp(38px, 5vw, 64px); line-height: 1.08; letter-spacing: -.045em; }
+    .hero-copy { max-width: 760px; margin: 0; color: var(--muted); font-size: 18px; line-height: 1.85; }
+    .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: 28px; flex-wrap: wrap; }
+    .secondary-link { color: var(--brand); font-weight: 800; }
+    .route {
+      display: flex;
+      gap: 0;
+      margin: 42px 0 50px;
+      overflow-x: auto;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .route span { white-space: nowrap; }
+    .route span:not(:last-child)::after { content: "→"; margin: 0 10px; color: var(--accent); }
+    .section-title { margin: 0 0 18px; font-size: 25px; letter-spacing: -.02em; }
+    .tutorial-card {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(230px, .55fr);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+    .tutorial-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--accent); }
+    .card-main { padding: 30px 32px 32px; }
+    .card-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .chip { padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--muted); font-size: 12px; font-weight: 800; }
+    .tutorial-card h2 { margin: 0 0 10px; font-size: 28px; }
+    .tutorial-card p { margin: 0; color: var(--muted); }
+    .card-link { display: inline-flex; margin-top: 24px; color: var(--brand); font-weight: 900; }
+    .card-side { padding: 28px; border-left: 1px solid var(--line); background: var(--bg); }
+    .card-side strong { display: block; margin-bottom: 12px; }
+    .card-side ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+    .card-side li + li { margin-top: 7px; }
+    .outcomes { margin-top: 52px; }
+    .outcomes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .outcome { padding: 20px; border-top: 2px solid var(--line); }
+    .outcome b { display: block; margin-bottom: 7px; }
+    .outcome span { color: var(--muted); font-size: 14px; }
+    .aside {
+      position: sticky;
+      top: var(--header-h);
+      height: calc(100vh - var(--header-h));
+      padding: 30px 20px;
+      border-left: 1px solid var(--line);
+    }
+    .aside-title { margin-bottom: 14px; font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+    .aside a { display: block; margin: 11px 0; color: var(--muted); font-size: 13px; }
+    .aside a:hover { color: var(--brand); }
+    .menu-button { display: none; }
+    .backdrop { display: none; }
+    @media (max-width: 1040px) {
+      .layout { grid-template-columns: var(--sidebar-w) minmax(0, 1fr); }
+      .aside { display: none; }
+    }
+    @media (max-width: 760px) {
+      .tagline, .sea { display: none; }
+      .menu-button { display: inline-flex; }
+      .layout { display: block; }
+      .sidebar { position: fixed; z-index: 30; top: var(--header-h); left: 0; width: min(84vw, 300px); transform: translateX(-105%); transition: transform .2s ease; }
+      body.menu-open .sidebar { transform: translateX(0); }
+      body.menu-open .backdrop { display: block; position: fixed; z-index: 25; inset: var(--header-h) 0 0; background: #0008; }
+      main { padding: 38px 22px 60px; }
+      .tutorial-card { grid-template-columns: 1fr; }
+      .card-side { border-left: 0; border-top: 1px solid var(--line); }
+      .outcomes-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <button class="top-action menu-button" id="menu" type="button" aria-label="打开导航">菜单</button>
+    <a class="brand" href="../"><span>品构</span> pg-skills</a>
+    <span class="tagline">品质，长在结构里</span>
+    <span class="sea">SEA 驱动的 AI Coding</span>
+    <div class="top-actions">
+      <a class="top-action" href="https://github.com/pin-gou/pg-skills">GitHub</a>
+      <button class="top-action" id="theme" type="button" aria-label="切换明暗主题">明暗</button>
+    </div>
+  </header>
+
+  <div class="backdrop" id="backdrop"></div>
+  <div class="layout">
+    <nav class="sidebar" aria-label="全站导航">
+      <a class="sidebar-title" href="../"><span>品构</span> pg-skills</a>
+      <span class="group-label">基础概念</span>
+      <a class="nav-link" href="../#sec1">1. 为什么需要</a>
+      <a class="nav-link" href="../#sec2">2. 架构全景</a>
+      <span class="group-label">新项目接入</span>
+      <a class="nav-link" href="../#sec3-onboard">3.1 五步接入</a>
+      <a class="nav-link" href="../#sec3-yaml">3.2 project.yaml</a>
+      <a class="nav-link" href="../#sec3-hook">3.3 Hook 协议</a>
+      <span class="group-label">日常使用</span>
+      <a class="nav-link" href="../#sec4-overview">4.1 概述</a>
+      <a class="nav-link" href="../#sec4-define">4.2 定界</a>
+      <a class="nav-link" href="../#sec4-propose">4.3 提案</a>
+      <a class="nav-link" href="../#sec4-build">4.4 构建</a>
+      <span class="group-label">真实项目实战</span>
+      <a class="nav-link active" href="./">实战教程总览</a>
+      <span class="group-label">附录</span>
+      <a class="nav-link" href="../#sec-appendix">参考速查卡</a>
+    </nav>
+
+    <main>
+      <section id="overview">
+        <div class="eyebrow">REAL PROJECTS · 从真实代码到可验收结果</div>
+        <h1>真实项目实战</h1>
+        <p class="hero-copy">不只了解 pg-skills 的命令，而是在真实开源项目里走完一次可复现、可检查的开发流程。选择下面的教程，从项目准备开始，依次完成需求定界、方案生成、代码构建、真实环境验收与合并。</p>
+        <div class="hero-actions">
+          <a class="secondary-link" href="../#sec4-overview">先了解标准工作流</a>
+        </div>
+        <div class="route" aria-label="学习路线">
+          <span>准备项目</span><span>define 定界</span><span>propose 提案</span><span>build 构建</span><span>verify 验证</span><span>merge 合并</span>
+        </div>
+      </section>
+
+      <section id="tutorials">
+        <h2 class="section-title">选择实战教程</h2>
+        <article class="tutorial-card">
+          <div class="card-main">
+            <div class="card-meta">
+              <span class="chip">完整标准流</span>
+              <span class="chip">OpenCode</span>
+              <span class="chip">pg-skills v0.9.3</span>
+            </div>
+            <h2>celer-route 项目实战教程</h2>
+            <p>以统一管理和路由大模型请求的开源服务 celer-route 为真实代码库，增加“导出日志统计报表”功能，并查看每个阶段产生的方案、环境和验收证据。</p>
+            <a class="card-link" href="celer-route/">开始 celer-route 项目实战 →</a>
+          </div>
+          <div class="card-side">
+            <strong>你将完成</strong>
+            <ul>
+              <li>接入并初始化 pg-skills</li>
+              <li>生成 Spec 与环境描述</li>
+              <li>实现后端接口和前端按钮</li>
+              <li>验证场景并合并变更</li>
+            </ul>
+          </div>
+        </article>
+      </section>
+
+      <section class="outcomes" id="outcomes" aria-label="学习收获">
+        <h2 class="section-title">学习收获</h2>
+        <div class="outcomes-grid">
+          <div class="outcome"><b>看懂方法论</b><span>理解 Spec、Environment、Acceptance 如何在同一次变更中对应。</span></div>
+          <div class="outcome"><b>看懂阶段产物</b><span>知道 define、propose 和 build 分别生成什么，以及为什么需要这些文件。</span></div>
+          <div class="outcome"><b>完成真实闭环</b><span>从需求输入到代码、测试、场景证据和合并，不停留在命令演示。</span></div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="aside" aria-label="本页目录">
+      <div class="aside-title">本页目录</div>
+      <a href="#overview">真实项目实战</a>
+      <a href="#tutorials">选择实战教程</a>
+      <a href="#outcomes">学习收获</a>
+    </aside>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const saved = localStorage.getItem('pg-theme');
+      const preferred = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.dataset.theme = saved || preferred;
+      document.getElementById('theme').addEventListener('click', () => {
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('pg-theme', root.dataset.theme);
+      });
+      const closeMenu = () => document.body.classList.remove('menu-open');
+      document.getElementById('menu').addEventListener('click', () => document.body.classList.toggle('menu-open'));
+      document.getElementById('backdrop').addEventListener('click', closeMenu);
+      document.querySelectorAll('.sidebar a').forEach(link => link.addEventListener('click', closeMenu));
+    })();
+  </script>
+</body>
+</html>

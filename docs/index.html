@@ -516,6 +516,9 @@ tbody tr:nth-child(even) { background: var(--sl-color-gray-1); }
   <a href="#sec7" class="nav-link">7. 动手实操</a>
   <a href="#sec8" class="nav-link">8. 常见问题</a>
 
+  <span class="group-label">真实项目实战</span>
+  <a href="tutorials/" class="nav-link">实战教程总览</a>
+
   <span class="group-label">附录</span>
   <a href="#sec-appendix" class="nav-link">参考速查卡</a>
 </nav>
@@ -2064,7 +2067,7 @@ pg doctor
   navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
       const href = link.getAttribute('href');
-      if (!href || href.startsWith('http') || link.hasAttribute('target')) return;
+      if (!href || !href.startsWith('#')) return;
       e.preventDefault();
       showSection(href.slice(1));
     });
